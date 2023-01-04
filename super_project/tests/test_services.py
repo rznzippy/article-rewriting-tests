@@ -1,6 +1,7 @@
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
+import stripe
 from stripe.error import StripeError
 
 from super_project import errors
@@ -8,10 +9,11 @@ from super_project.services import SubscriptionService
 
 
 class SubscriptionServiceTestCase(unittest.TestCase):
-    @patch("stripe.Charge.create")
-    def test_charge(self, charge_mock):
+    def test_charge(self):
+        stripe_mock = Mock(spec=stripe)
+        charge_mock = stripe_mock.Charge.create
         user = Mock()
-        subscription_service = SubscriptionService()
+        subscription_service = SubscriptionService(stripe=stripe_mock)
 
         # 1)
         user.has_active_subscription = True

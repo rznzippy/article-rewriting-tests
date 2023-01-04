@@ -5,6 +5,9 @@ from super_project import errors
 
 
 class SubscriptionService:
+    def __init__(self, stripe=stripe):
+        self._stripe = stripe
+
     def charge(self, user, amount):
         if user.has_active_subscription:
             raise errors.ActiveSubscriptionException()
@@ -16,7 +19,7 @@ class SubscriptionService:
             raise errors.TokenMissingException()
 
         try:
-            stripe.Charge.create(
+            self._stripe.Charge.create(
                 amount=amount,
                 currency="usd",
                 source=user.payment_token,
