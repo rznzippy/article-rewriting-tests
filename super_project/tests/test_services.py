@@ -9,35 +9,50 @@ from super_project.services import SubscriptionService
 
 
 class SubscriptionServiceTestCase(unittest.TestCase):
-    def test_charge(self):
+    def setUp(self):
         stripe_mock = Mock(spec=stripe)
-        charge_mock = stripe_mock.Charge.create
-        user = Mock()
-        subscription_service = SubscriptionService(stripe=stripe_mock)
+        self.charge_mock = stripe_mock.Charge.create
+        self.user = Mock(
+            has_active_subscription=False,
+            has_balance=Mock(return_value=True),
+            has_payment_token=True,
+        )
 
-        # 1)
-        user.has_active_subscription = True
+        self.instance = SubscriptionService(stripe=stripe_mock)
+
+    def test_charge_calls_stripe_charge_correctly(self):
+        self.instance.charge(self.user, 100)
+
+        self.charge_mock.assert_called_once_with(
+            amount=100,
+            currency="usd",
+            source=self.user.payment_token,
+            description="XYZ Subscription: Premium plan",
+        )
+
+    def test_charge_raises_active_subscription_exception(self):
+        self.user.has_active_subscription = True
+
         with self.assertRaises(errors.ActiveSubscriptionException):
-            subscription_service.charge(user, 100)
+            self.instance.charge(self.user, 100)
 
-        # 2)
-        user.has_active_subscription = False
-        user.has_balance.return_value = False
+    def test_charge_raises_insufficient_funds_exception(self):
+        self.user.has_balance.return_value = False
+
         with self.assertRaises(errors.InsufficientFundsException):
-            subscription_service.charge(user, 100)
+            self.instance.charge(self.user, 100)
 
-        # 3)
-        user.has_balance.return_value = True
-        user.has_payment_token = False
+    def test_charge_raises_token_missing_exception(self):
+        self.user.has_payment_token = False
+
         with self.assertRaises(errors.TokenMissingException):
-            subscription_service.charge(user, 100)
+            self.instance.charge(self.user, 100)
 
-        # 4)
-        user.has_payment_token = True
-        charge_mock.side_effect = StripeError
+    def test_charge_raises_payment_exception(self):
+        self.charge_mock.side_effect = StripeError
+
         with self.assertRaises(errors.PaymentException):
-            subscription_service.charge(user, 100)
+            self.instance.charge(self.user, 100)
 
-        # 5)
-        charge_mock.side_effect = None
-        subscription_service.charge(user, 100)
+    def test_charge_does_not_raise_exception(self):
+        self.instance.charge(self.user, 100)
