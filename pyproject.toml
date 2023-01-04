@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "rewriting-tests"
+version = "0.1.0"
+description = ""
+authors = ["Ilya Khrustalev <rzn.zippy@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+stripe = "^5.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
